@@ -11,5 +11,7 @@ namespace VoKhanhHuyenLuong_2122110521.Model
 
         // Một User có thể có nhiều Product (nếu bạn muốn quản lý sản phẩm theo user)
         public List<Product> Products { get; set; } = new List<Product>();
+        public ICollection<Order>? Orders { get; set; }
+
     }
 }

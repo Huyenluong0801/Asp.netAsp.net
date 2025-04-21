@@ -2,10 +2,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Text;
 using VoKhanhHuyenLuong_2122110521.Data;
 using VoKhanhHuyenLuong_2122110521.Services;
-using System.Text;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +15,19 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // 🔐 Add JWT Authentication
 var secretKey = builder.Configuration["Jwt:SecretKey"];
 builder.Services.AddSingleton(new JwtService(secretKey));
+
+// Cấu hình CORS - Cập nhật policy
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp",
+        builder => builder
+            .WithOrigins("http://localhost:3000")
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials() // Thêm dòng này
+            .WithExposedHeaders("Authorization") // Cho phép client đọc header Authorization
+    );
+});
 
 builder.Services.AddAuthentication(options =>
 {
@@ -35,8 +47,6 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddControllers();
-
-// 🔧 Swagger + JWT config
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -68,16 +78,21 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-// 🔧 HTTP request pipeline
+// Thứ tự middleware QUAN TRỌNG
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// 1. CORS phải đứng trước các middleware khác
+app.UseCors("AllowReactApp");
 
-app.UseAuthentication(); // 👈 Quan trọng
+// 2. Sau đó là HTTPS redirection (nếu cần)
+// app.UseHttpsRedirection(); // Tạm comment lại vì đang dùng HTTP trong development
+
+// 3. Cuối cùng là Authentication và Authorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
